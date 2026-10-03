@@ -67,7 +67,7 @@ A substance dissolves when its particles can attract the solvent's molecules abo
 **Why some vitamins are stored and others aren't.** Vitamin C has several O–H groups and dissolves in water, so the body stores little of it; any extra leaves in urine. Vitamins A, D, E, and K are mostly nonpolar hydrocarbon. They dissolve in fat instead, so the body stores them in the liver and fatty tissue, which is why large doses of them can build up to harmful levels.
 </div>
 
-## Charged molecules in the body
+## Charged molecules in the body {#charged}
 
 Many molecules in your cells carry full charges, and that changes how they behave. At body pH, about 7.4, **acid groups give up their H⁺ and amine groups pick one up**. You'll see why when the course reaches acids and bases; for now, it's enough to recognize the result.
 
