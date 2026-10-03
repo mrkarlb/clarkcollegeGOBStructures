@@ -49,7 +49,7 @@ disagree with the drawings.
 ## Editing
 
 - **Change text:** edit the Markdown file in `content/`. Structures go in with shortcodes on their own line:
-  - `[[lewis id]]` one structure; `[[lewisrow id1 id2]]` a row
+  - `[[lewis id]]` one structure; `[[lewisrow id1 id2]]` a row (add `partial` to label δ+ and δ−)
   - `[[steps id]]` Steps 1–3 for a neutral molecule (add `share` when a lone pair has to be shared)
   - `[[resonance id1 id2 …]]` resonance forms joined by ↔
   - `[[count id]]` the valence-electron count table; `[[symbols C N O]]` Lewis symbols

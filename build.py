@@ -115,17 +115,19 @@ def caption(s, show_note=True):
     return f'<figcaption><span class="nm">{f}{html.escape(s["title"])}</span>{note}{tag}</figcaption>'
 
 
-def drawing(sid, stage="final"):
+def drawing(sid, stage="final", partial=False):
     USED.add(sid)
     s = BY_ID[sid]
     name = f"{s['formula']} ({s['title']})" if s["formula"] else s["title"]
     name = name.replace("^", " ")
-    return lewis_svg(_uid(sid, "" if stage == "final" else "-" + stage), MOLS[sid], describe(MOLS[sid], name, stage),
-                     stage, brackets=s["role"] != "pattern")
+    notes = shapes.partials(MOLS[sid]) if partial else None
+    uid = _uid(sid, ("" if stage == "final" else "-" + stage) + ("-partial" if partial else ""))
+    return lewis_svg(uid, MOLS[sid], describe(MOLS[sid], name, stage, notes), stage,
+                     brackets=s["role"] != "pattern", notes=notes)
 
 
-def figure(sid):
-    return f'<figure class="fig"><div class="pic">{drawing(sid)}</div>{caption(BY_ID[sid])}</figure>'
+def figure(sid, partial=False):
+    return f'<figure class="fig"><div class="pic">{drawing(sid, partial=partial)}</div>{caption(BY_ID[sid])}</figure>'
 
 
 # ---------------------------------------------------------------- page 2 pieces
@@ -342,7 +344,8 @@ def expand_shortcodes(md):
         if kind == "lewis":
             out = figure(args[0])
         elif kind == "lewisrow":
-            out = '<div class="figrow">' + "".join(figure(a) for a in args) + "</div>"
+            partial = "partial" in args
+            out = '<div class="figrow">' + "".join(figure(a, partial) for a in args if a != "partial") + "</div>"
         elif kind == "steps":
             out = steps(args[0], share="share" in args[1:])
         elif kind == "resonance":

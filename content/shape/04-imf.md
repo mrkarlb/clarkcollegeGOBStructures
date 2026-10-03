@@ -55,7 +55,7 @@ These rankings hold when the molecules are about the same size. A very large non
 
 To boil a liquid, its molecules have to pull away from each other. The stronger the forces between them, the more energy that takes, and the higher the boiling point.
 
-[[lewisrow etoh dme]]
+[[lewisrow etoh dme partial]]
 
 Ethanol and dimethyl ether have exactly the same formula, C₂H₆O. Both are polar. But ethanol has an O–H bond, so its molecules form hydrogen bonds with each other; dimethyl ether's H atoms are all on carbon, so it can't. The difference is about 100 °C: ethanol is a liquid at room temperature, and dimethyl ether is a gas.
 

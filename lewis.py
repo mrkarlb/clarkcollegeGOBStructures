@@ -427,6 +427,15 @@ def describe(m, title, stage="final", notes=None):
             p, sg = _sigma_dots(a)
             s += f", with {p} pair{'s' if p != 1 else ''} and {sg} single electron{'s' if sg != 1 else ''} left"
         parts.append(s + ".")
+    if stage == "final" and notes:
+        # Hydrogens aren't described one by one above, so name any that carry a partial charge.
+        hs = {}
+        for a in m.GetAtoms():
+            if a.GetSymbol() == "H" and a not in heavy and a.GetIdx() in notes and a.GetNeighbors():
+                key = WORD[a.GetNeighbors()[0].GetSymbol()]
+                hs[key] = hs.get(key, 0) + 1
+        for key, n in hs.items():
+            parts.append(f"{'Each hydrogen' if n > 1 else 'The hydrogen'} bonded to {key} has a partial positive charge.")
     return " ".join(parts)
 
 
