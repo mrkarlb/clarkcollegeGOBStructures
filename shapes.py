@@ -126,6 +126,19 @@ def shape_svg(uid, m, title, idx=None):
     def lab(sym, x, y):
         labels.append(f'<text x="{x:.1f}" y="{y:.1f}" dy="0.35em" style="fill:var({lewis.COLOR.get(sym, "--mol-c")})">{sym}</text>')
 
+    def charge(atom, x, y, used, col):
+        fc = atom.GetFormalCharge()
+        if not fc:
+            return
+        tag = lewis.charge_text(fc)
+        cand = [k * 15 for k in range(24)]
+        best = max(cand, key=lambda a: (min((lewis._adiff(a, u) for u in used), default=180), -lewis._adiff(a, -45)))
+        t = math.radians(best)
+        rc = lewis._wide(atom.GetSymbol(), t, lewis.R_CHARGE + (4 if len(tag) > 1 else 0))
+        cx, cy = x + rc * math.cos(t), y + rc * math.sin(t)
+        labels.append(f'<text class="fc" x="{cx:.1f}" y="{cy:.1f}" dy="0.35em" style="fill:{col}">{tag}</text>')
+        pts.append((cx, cy))
+
     lab(c.GetSymbol(), 0, 0)
     for n, (kind, sx, sy) in zip(nbrs, free):
         x, y = sx * L, -sy * L
@@ -151,6 +164,17 @@ def shape_svg(uid, m, title, idx=None):
                 parts.append(f'<line class="hash" x1="{hx + px * w:.1f}" y1="{hy + py * w:.1f}" '
                              f'x2="{hx - px * w:.1f}" y2="{hy - py * w:.1f}"/>')
         lab(n.GetSymbol(), x, y)
+    # Outer atoms: draw their lone pairs and formal charges the same way the Lewis drawings do,
+    # so every C, N, O, and F still shows its full octet in the 3D picture.
+    for n, (kind, sx, sy) in zip(nbrs, free):
+        x, y = sx * L, -sy * L
+        toward = math.degrees(math.atan2(-y, -x))
+        ncolor = f"var({lewis.COLOR.get(n.GetSymbol(), '--mol-c')})"
+        slots_n = lewis.spread([toward], lewis._lone_pairs(n), prefer=toward + 180)
+        for t in slots_n:
+            parts.append(lewis._dot_pair(x, y, t, ncolor, n.GetSymbol()))
+            pts.append((x + 20 * math.cos(math.radians(t)), y + 20 * math.sin(math.radians(t))))
+        charge(n, x, y, [toward] + slots_n, ncolor)
     color = f"var({lewis.COLOR.get(c.GetSymbol(), '--mol-c')})"
     for k in lp_slots:
         kind, sx, sy = slots[k]
@@ -160,12 +184,14 @@ def shape_svg(uid, m, title, idx=None):
         parts.append(f'<circle cx="{x + px:.1f}" cy="{y + py:.1f}" r="2.4" fill="{color}"/>'
                      f'<circle cx="{x - px:.1f}" cy="{y - py:.1f}" r="2.4" fill="{color}"/>')
         pts.append((x, y))
+    center_used = [math.degrees(math.atan2(-sy, sx)) for _, sx, sy in slots]
+    charge(c, 0, 0, center_used, color)
     xs, ys = [p[0] for p in pts], [p[1] for p in pts]
     x0, x1, y0, y1 = min(xs) - 22, max(xs) + 22, min(ys) - 20, max(ys) + 20
     w, h = x1 - x0, y1 - y0
     desc = (f"Three-dimensional shape of {title}: {g['molecular']}. The central {lewis.WORD[g['symbol']]} has "
             f"{g['groups']} electron groups ({g['lone_pairs']} lone pair{'s' if g['lone_pairs'] != 1 else ''}). "
-            "Solid wedges point toward you; dashed bonds point away.")
+            "Each outer atom shows its own lone pairs. Solid wedges point toward you; dashed bonds point away.")
     return (f'<svg class="lewis shape" viewBox="{x0:.1f} {y0:.1f} {w:.1f} {h:.1f}" width="{w * lewis.DISPLAY:.0f}" '
             f'height="{h * lewis.DISPLAY:.0f}" role="img" aria-labelledby="t-{uid}" xmlns="http://www.w3.org/2000/svg">'
             f'<title id="t-{uid}">{html.escape(desc)}</title><g class="bonds">{"".join(parts)}</g>'
