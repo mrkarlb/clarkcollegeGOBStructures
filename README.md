@@ -1,6 +1,8 @@
 # Molecular Structure (CHEM&121)
 
-A two-page web guide for Clark College CHEM&121 students preparing for health-profession careers:
+A three-page web guide for Clark College CHEM&121 students preparing for health-profession careers:
+
+- **Naming Compounds** (`naming.html`): ions, polyatomic ions, ionic and covalent compounds, acids
 
 - **Lewis Structures** (`index.html`): Lewis symbols, drawing, bonding patterns and formal charge, resonance
 - **Shape, Polarity, and Intermolecular Forces** (`shape.html`): VSEPR, bond and molecular polarity,
@@ -20,7 +22,8 @@ Written by Dr. Karl Bailey, Clark College. Licensed CC BY-NC 4.0 (see `LICENSE`)
 | `structures.py` | Every structure: id, formula, name, SMILES with formal charges, and layout; plus the practice problems |
 | `lewis.py` | Works out lone pairs, checks electron counts, and draws each Lewis structure as an SVG that follows the page's light/dark theme |
 | `shapes.py` | Works out VSEPR shape, partial charges, and polarity from the same structures; draws 3D shapes and the intermolecular-force diagrams |
-| `build.py` | Checks every structure, builds both pages into `_site/`, and checks every link |
+| `naming.py` | Every ion (with its charge), covalent compound, and the rules that generate ionic formulas, names, and acids for the naming page |
+| `build.py` | Checks every structure and every name, builds the pages into `_site/`, and checks every link |
 | `template.html` | Page layout, styles, search, and dark mode |
 | `tools/review_sheet.py` | Builds `_site/structure_review.html`, every structure on one page with its electron counts, for chemistry review |
 
@@ -42,6 +45,13 @@ charges, and the build works out every lone pair from that. It then checks that:
 Shape names, bond angles, ΔEN values, and partial charges on the page are all computed from the
 structures, so they can't disagree with the drawings. The build also fails if any link to a section
 or to the other page points nowhere.
+
+**The naming page is checked too.** Ionic formulas are worked out from the ion charges, so they always
+balance, and names and acids are generated from the naming rules. OPSIN then reads every ionic name,
+every chart ion, and every acid back to a formula; covalent names are checked prefix by prefix
+against the formula (and by OPSIN when it can read them). Naming shortcodes: `[[ionchart main|variable|fixed]]`,
+`[[polychart]]`, `[[oxyseries]]`, `[[ionic na-cl ca-po4]]`, `[[prefixes]]`, `[[covalent n2o co2]]`,
+`[[commonnames]]`, `[[acids so4 no3]]`, and practice `[[nameq fe3-o2]]` / `[[formulaq acid-no2]]`.
 
 Electron totals in the text come from `{{ve id}}`, computed from the formula, so they can't
 disagree with the drawings.

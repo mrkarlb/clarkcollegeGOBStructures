@@ -18,6 +18,7 @@ import markdown
 from rdkit import Chem, RDLogger
 
 import lewis
+import naming
 import shapes
 from lewis import (audit, charge_text, describe, electron_count_rows, formula_html, lewis_svg,
                    make_mol, parse_formula, symbol_svg)
@@ -76,11 +77,30 @@ def verify():
         for i in ids:
             if i not in BY_ID:
                 problems.append(f"  practice {pid}: no structure '{i}'")
+    nprob, nread, nall = verify_naming()
+    problems += nprob
     if problems:
         print("STRUCTURE CHECK FAILED:\n" + "\n".join(problems))
         sys.exit(1)
     print(f"Structure check passed: {len(S)} structures ({len(named)} name-checked), "
           f"{len(PRACTICE)} practice problems.")
+    print(f"Naming check passed: {len(naming.IONS)} ions; {nall} names checked, {nread} also read by OPSIN.")
+
+
+def verify_naming():
+    """Collect every compound and acid the naming page shows, then check them all."""
+    ionic_ids, acid_ids, cov_ids = set(), set(), set()
+    for path in glob.glob(os.path.join(ROOT, "content", "*", "*.md")):
+        for kind, args in re.findall(r"^\[\[(ionic|acids|covalent|nameq|formulaq)\s+([^\]]+)\]\]", open(path).read(), re.M):
+            for a in args.split():
+                if kind == "acids" or a.startswith("acid-"):
+                    acid_ids.add(a.removeprefix("acid-"))
+                elif kind == "covalent" or a in naming.COV:
+                    cov_ids.add(a)
+                else:
+                    ionic_ids.add(a)
+    problems, read, total = naming.verify(sorted(ionic_ids), sorted(acid_ids), sorted(cov_ids))
+    return problems, read, total
 
 
 def audit_any(s):
@@ -337,11 +357,228 @@ def practice(pid):
             f"{answer}</details></div>")
 
 
+
+# ---------------------------------------------------------------- naming page pieces
+NM = naming
+
+
+def _tbl(cls, caption, heads, rows):
+    th = "".join(f'<th scope="col">{h}</th>' for h in heads)
+    return (f'<div class="table-wrap"><table class="{cls}"><caption>{caption}</caption><thead><tr>{th}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div>')
+
+
+def _ion(i):
+    return f'<span class="fm">{NM.ion_html(i)}</span>'
+
+
+def _q(q):
+    """Charge with its number always shown: 1+, 2−."""
+    return f"{abs(q)}{'+' if q > 0 else '−'}"
+
+
+def _cap(t):
+    return t[:1].upper() + t[1:]
+
+
+NUMWORD = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+
+
+def ion_chart(which):
+    if which == "main":
+        rows = []
+        for g in (1, 2, 13, 15, 16, 17):
+            ions = [i for i in NM.IONS if i["kind"] == "main" and i["group"] == g]
+            q = ions[0]["charge"]
+            kind = "metal: loses" if q > 0 else "nonmetal: gains"
+            rows.append(f'<tr><th scope="row">{g}</th><td>{_q(q)}</td><td>{kind} {abs(q)} '
+                        f'electron{"s" if abs(q) > 1 else ""}</td><td>'
+                        + ", ".join(f'{_ion(i)} {i["name"]}' for i in ions) + "</td></tr>")
+        return _tbl("ions", "Main-group ions: the charge comes from the group number", ["Group", "Charge", "Why", "Ions"], rows)
+    if which == "variable":
+        rows = [f'<tr><td>{_ion(i)}</td><th scope="row">{i["name"]}</th><td>{i["old"]}</td>'
+                f'<td>{html.escape(i["where"] or i["aka"])}</td></tr>'
+                for i in NM.IONS if i["kind"] == "variable"]
+        return _tbl("ions", "Metals with more than one common charge: the Roman numeral gives the charge",
+                    ["Ion", "Name", "Older name", "Notes"], rows)
+    if which == "fixed":
+        rows = [f'<tr><td>{_ion(i)}</td><th scope="row">{i["name"]}</th><td>{html.escape(i["where"])}</td></tr>'
+                for i in NM.IONS if i["kind"] == "fixed"]
+        return _tbl("ions", "Transition metals with only one common charge: no Roman numeral", ["Ion", "Name", "Where you'll see it"], rows)
+    raise ValueError(f"[[ionchart {which}]]")
+
+
+POLY_GROUPS = [("cation", "Positive polyatomic ions"), ("N", "Nitrogen"), ("C", "Carbon"), ("S", "Sulfur"),
+               ("P", "Phosphorus"), ("Cl", "Chlorine"), ("other", "Others to know")]
+
+
+def poly_chart():
+    rows = []
+    for fam, label in POLY_GROUPS:
+        rows.append(f'<tr class="grp"><th scope="rowgroup" colspan="4">{label}</th></tr>')
+        for i in NM.IONS:
+            if i["kind"] == "poly" and i["family"] == fam:
+                rows.append(f'<tr><td>{_ion(i)}</td><th scope="row">{i["name"]}</th>'
+                            f'<td>{html.escape(i["aka"])}</td><td>{html.escape(i["where"])}</td></tr>')
+    return _tbl("ions poly", "Common polyatomic ions. Use this chart; you don't need to memorize it.",
+                ["Ion", "Name", "Also written or called", "Where you'll see it"], rows)
+
+
+def oxy_series():
+    ids = ["clo", "clo2", "clo3", "clo4"]
+    pattern = {"clo": "hypo- … -ite", "clo2": "-ite", "clo3": "-ate", "clo4": "per- … -ate"}
+    rows = [f'<tr><td>{_ion(NM.ION[i])}</td><td>{NM.parse(NM.ION[i]["body"])["O"]}</td>'
+            f'<th scope="row">{NM.ION[i]["name"]}</th><td>{pattern[i]}</td></tr>' for i in ids]
+    return _tbl("ions", "The chlorine series. Bromine and iodine follow the same pattern.",
+                ["Ion", "O atoms", "Name", "Pattern"], rows)
+
+
+def ionic_table(ids):
+    rows = []
+    for cid in ids:
+        c = NM.ionic(*cid.split("-"))
+        bal = (f'{c["nc"]} × ({_q(c["cat"]["charge"])}) = +{c["lcm"]}, '
+               f'{c["na"]} × ({_q(c["an"]["charge"])}) = −{c["lcm"]}')
+        rows.append(f'<tr><td>{_ion(c["cat"])} and {_ion(c["an"])}</td><td>{bal}</td>'
+                    f'<td><span class="fm">{NM.html_formula(c["formula"])}</span></td><th scope="row">{c["name"]}</th></tr>')
+    return _tbl("ionic", "Charges balance to zero", ["Ions", "Balance the charges", "Formula", "Name"], rows)
+
+
+def prefix_table():
+    cells = "".join(f'<tr><td>{n + 1}</td><th scope="row">{p}-</th></tr>' for n, p in enumerate(NM.PREFIX))
+    return _tbl("prefixes", "Prefixes for covalent compounds", ["Number", "Prefix"], [cells])
+
+
+def covalent_table(ids):
+    rows = []
+    for cid in ids:
+        c = NM.COV[cid]
+        notes = "; ".join(x for x in (f"also called {c['common']}" if c["common"] else "", c["where"]) if x)
+        rows.append(f'<tr><td><span class="fm">{NM.html_formula(c["formula"])}</span></td>'
+                    f'<th scope="row">{c["name"]}</th><td>{html.escape(notes)}</td></tr>')
+    return _tbl("covalent", "Covalent compounds: prefixes give the number of each atom", ["Formula", "Name", "Notes"], rows)
+
+
+def common_table():
+    rows = [f'<tr><td><span class="fm">{NM.html_formula(f)}</span></td><th scope="row">{n}</th></tr>' for f, n in NM.COMMON]
+    return _tbl("covalent", "Common names you'll use instead of prefix names", ["Formula", "Name"], rows)
+
+
+def acid_table(ids):
+    rows = []
+    for aid in ids:
+        a = NM.acid(aid)
+        rows.append(f'<tr><td>{_ion(a["an"])} {a["an"]["name"]}</td><td>{a["rule"]}</td>'
+                    f'<td><span class="fm">{NM.html_formula(a["formula"])}</span></td><th scope="row">{a["name"]}</th></tr>')
+    return _tbl("acids", "Acids are named from their anions", ["Anion", "Rule", "Acid", "Name"], rows)
+
+
+def _element_of(i):
+    return re.sub(r"\(.*\)", "", i["name"])
+
+
+def _explain_ionic(c, direction):
+    cat, an = c["cat"], c["an"]
+    if direction == "formula":
+        why = f'{_cap(cat["name"])} is {_ion(cat)} and {an["name"]} is {_ion(an)}. '
+        if c["nc"] == 1 and c["na"] == 1:
+            why += "The charges are equal and opposite, so one of each balances. "
+        else:
+            why += (f'The charges balance at {c["lcm"]}: {c["nc"]} × ({_q(cat["charge"])}) = +{c["lcm"]} and '
+                    f'{c["na"]} × ({_q(an["charge"])}) = −{c["lcm"]}. ')
+        for i, n in ((cat, c["nc"]), (an, c["na"])):
+            if i["paren"] and n > 1:
+                why += f'{_cap(i["name"])} is a polyatomic ion, so it goes in parentheses with the {n} outside. '
+        if cat["id"] == "hg1":
+            why += "Mercury(I) is always Hg₂²⁺, two Hg atoms together, so its formula keeps the 2. "
+        return why.strip()
+    # formula -> name
+    if cat["kind"] == "variable":
+        el = _element_of(cat)
+        why = (f'The anion is {an["name"]}, {_ion(an)}. ' +
+               (f'{_cap(NUMWORD[c["na"]])} of them make −{c["lcm"]}, ' if c["na"] > 1 else f'It carries −{c["lcm"]}, ') +
+               (f'so the {NUMWORD[c["nc"]]} {el} atoms make +{c["lcm"]}: each is {_q(cat["charge"])}. '
+                if c["nc"] > 1 and cat["id"] != "hg1" else f'so {el} must be +{c["lcm"]}. ' if cat["id"] != "hg1"
+                else "balanced by Hg₂²⁺, mercury(I). ") +
+               f'{_cap(el)} has more than one common charge, so the name needs a Roman numeral: {c["name"]}.')
+        return why
+    if cat["kind"] == "poly":
+        why = (f'{_cap(cat["name"])} is a polyatomic ion, {_ion(cat)}, and polyatomic ions never take a Roman numeral. '
+               f'Name the cation, then the anion: {c["name"]}.')
+    else:
+        why = (f'{_cap(_element_of(cat))} has only one common charge, {_ion(cat)}, so there\'s '
+               f'no Roman numeral. Name the cation, then the anion: {c["name"]}.')
+    if c["nc"] > 1 or c["na"] > 1:
+        why += " Ionic names never use prefixes: the charges already tell you how many of each."
+    return why
+
+
+def _explain_cov(c):
+    (e1, n1), (e2, n2) = NM.read_prefixed(c["name"])
+    first = "no prefix, because the first element never takes mono-" if n1 == 1 else f"{NM.PREFIX[n1 - 1]}-"
+    why = (f'Two nonmetals, so it\'s covalent and the name uses prefixes. {n1} {e1}: {first}. '
+           f'{n2} {e2}: {NM.PREFIX[n2 - 1]}-, and the second element ends in -ide. ')
+    p = NM.PREFIX[n2 - 1]
+    if p[-1] in "ao" and c["name"].split()[1].startswith(p[:-1] + "o"):
+        why += f'Drop the final {p[-1]} before "oxide": {p[:-1]}oxide. '
+    return why + (f'You\'ll also hear it called {c["common"]}.' if c["common"] else "")
+
+
+def _explain_acid(a):
+    nm = a["an"]["name"]
+    extra = ""
+    if nm.startswith(("sulf", "phosph")):
+        extra = f' {_cap(nm[:-3])} adds a syllable in the acid: {a["name"].split()[0]}.'
+    elif nm.startswith(("hypo", "per")):
+        extra = f' The {"hypo-" if nm.startswith("hypo") else "per-"} prefix carries over to the acid.'
+    return (f'The anion is {nm}, {_ion(a["an"])}. Rule: {a["rule"]}.{extra} '
+            f'It takes {a["nH"]} H⁺ to balance the {_q(a["an"]["charge"])} charge.')
+
+
+def naming_question(direction, ref):
+    if ref.startswith("acid-"):
+        a = NM.acid(ref[5:])
+        formula, name, why = a["formula"], a["name"], _explain_acid(a)
+    elif ref in NM.COV:
+        c = NM.COV[ref]
+        formula, name, why = c["formula"], c["name"], _explain_cov(c)
+    else:
+        c = NM.ionic(*ref.split("-"))
+        formula, name, why = c["formula"], c["name"], _explain_ionic(c, direction)
+    fm = f'<span class="fm">{NM.html_formula(formula)}</span>'
+    if direction == "name":
+        q, ans = f"<strong>Name</strong> {fm}.", f'<span class="ans">{name}</span>'
+    else:
+        q, ans = f"<strong>Write the formula for</strong> {name}.", f'<span class="ans">{NM.html_formula(formula)}</span>'
+    return (f'<div class="practice"><p class="q">{q}</p><details class="answer"><summary>Show answer</summary>'
+            f'<p>{ans}</p><p>{why}</p></details></div>')
+
+
+NAMING_REFS = dict(ionic=set(), acid=set(), cov=set())
+
 # ---------------------------------------------------------------- markdown
 def expand_shortcodes(md):
     def repl(m):
         kind, *args = m.group(1).split()
-        if kind == "lewis":
+        if kind == "ionchart":
+            out = ion_chart(args[0])
+        elif kind == "polychart":
+            out = poly_chart()
+        elif kind == "oxyseries":
+            out = oxy_series()
+        elif kind == "ionic":
+            out = ionic_table(args)
+        elif kind == "prefixes":
+            out = prefix_table()
+        elif kind == "covalent":
+            out = covalent_table(args)
+        elif kind == "commonnames":
+            out = common_table()
+        elif kind == "acids":
+            out = acid_table(args)
+        elif kind in ("nameq", "formulaq"):
+            out = naming_question("name" if kind == "nameq" else "formula", args[0])
+        elif kind == "lewis":
             out = figure(args[0])
         elif kind == "lewisrow":
             partial = "partial" in args
@@ -394,6 +631,12 @@ def expand_shortcodes(md):
 
 
 PAGES = [
+    dict(file="naming.html", folder="naming", head="Naming Compounds — CHEM&amp;121 — Clark College",
+         title="Naming Compounds", nav="Naming Compounds",
+         sub="Ions, ionic and covalent compounds, and acids: how to go from a name to a formula and back. "
+             "Written for students preparing for health-profession careers.",
+         desc="Naming ions, ionic compounds, covalent compounds, and acids for students preparing for "
+              "health-profession careers. CHEM&amp;121, Clark College."),
     dict(file="index.html", folder="lewis", head="Lewis Structures — CHEM&amp;121 — Clark College",
          title="Lewis Structures", nav="Lewis Structures",
          sub="Lewis symbols, drawing Lewis structures, formal charge, and resonance. Written for students "
@@ -407,7 +650,7 @@ PAGES = [
          desc="Molecular shape (VSEPR), bond and molecular polarity, and intermolecular forces for students preparing "
               "for health-profession careers. CHEM&amp;121, Clark College."),
 ]
-PAGE = PAGES[0]
+PAGE = PAGES[1]
 
 
 def build_sections(folder):

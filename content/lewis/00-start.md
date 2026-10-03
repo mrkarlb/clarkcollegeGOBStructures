@@ -2,12 +2,12 @@
 
 A molecule's structure decides what it does. Carbon monoxide is poisonous because of where its electrons sit. Bicarbonate can carry carbon dioxide through your blood because its charge is spread over three oxygens. Water dissolves salts, sugars, and many medicines because of its shape. Every one of those explanations starts with a **Lewis structure**: a drawing that shows every atom, every bond, and every lone pair of electrons in a molecule.
 
-This page walks through drawing Lewis structures step by step, then uses them to explain charges and resonance. The second page, [Shape, Polarity, and Intermolecular Forces](shape.html), builds from there: a molecule's Lewis structure sets its shape, its shape and bonds set its polarity, and polarity sets how molecules attract each other.
+This page walks through drawing Lewis structures step by step, then uses them to explain charges and resonance. If you need to go between names and formulas first, start with [Naming Compounds](naming.html). The next page, [Shape, Polarity, and Intermolecular Forces](shape.html), builds from there: a molecule's Lewis structure sets its shape, its shape and bonds set its polarity, and polarity sets how molecules attract each other.
 
 [[roadmap]]
 
 <div class="note" markdown="1">
-**Who this site is for.** This guide is written for students preparing for careers in the health professions, such as nursing and dental hygiene. It covers the structures you'll meet in an introductory chemistry course and connects them to the body and medicine. If you're taking CHEM&131, the [Bonding Patterns](#patterns) and [Resonance](#resonance) sections here, and [Intermolecular Forces](shape.html#imf) on the second page, are the review you'll want before organic chemistry.
+**Who this site is for.** This guide is written for students preparing for careers in the health professions, such as nursing and dental hygiene. It covers the structures you'll meet in an introductory chemistry course and connects them to the body and medicine. If you're taking CHEM&131, the [Bonding Patterns](#patterns) and [Resonance](#resonance) sections here, and [Intermolecular Forces](shape.html#imf) on the Shape page, are the review you'll want before organic chemistry.
 </div>
 
 ## How to use this site
