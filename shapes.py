@@ -4,6 +4,7 @@ Everything here is computed from the same SMILES the Lewis drawings use, so a
 shape name or polarity call on the page can't disagree with the structure.
 """
 import html
+import re
 import math
 
 import lewis
@@ -199,11 +200,12 @@ def shape_svg(uid, m, title, idx=None):
 
 
 # ------------------------------------------------------------------ intermolecular force diagrams
-def _water(cx, cy, toward, h_in, parts, labels, tag=False):
+def _water(cx, cy, toward, h_in, parts, labels, atoms):
     """A water molecule centered on its O at (cx, cy).
 
     toward: angle (degrees, screen coordinates) pointing at the neighbor it interacts with.
     h_in:   True if an H points at the neighbor, False if the O does.
+    atoms:  list that collects (x, y, symbol) so every atom can get its partial charge later.
     """
     half = 52.25  # half of 104.5°
     hs = [toward, toward + 2 * half] if h_in else [toward + 180 - half, toward + 180 + half]
@@ -214,15 +216,30 @@ def _water(cx, cy, toward, h_in, parts, labels, tag=False):
         ux, uy = math.cos(a), math.sin(a)
         parts.append(f'<line x1="{cx + ux * 10:.1f}" y1="{cy + uy * 10:.1f}" x2="{x - ux * 8:.1f}" y2="{y - uy * 8:.1f}"/>')
         labels.append(f'<text x="{x:.1f}" y="{y:.1f}" dy="0.35em" style="fill:var(--mol-c)">H</text>')
-        if tag:
-            labels.append(f'<text class="pc" x="{x + ux * 15:.1f}" y="{y + uy * 15:.1f}" dy="0.35em" '
-                          f'style="fill:var(--mol-c)">δ+</text>')
+        atoms.append((x, y, "H"))
     labels.append(f'<text x="{cx:.1f}" y="{cy:.1f}" dy="0.35em" style="fill:var(--mol-o)">O</text>')
-    if tag:
-        a = math.radians(toward + 180 if h_in else toward)
-        labels.append(f'<text class="pc" x="{cx + 20 * math.cos(a) - 6:.1f}" y="{cy - 17:.1f}" dy="0.35em" '
-                      f'style="fill:var(--mol-o)">δ−</text>')
+    atoms.append((cx, cy, "O"))
     return [(cx + r * math.cos(math.radians(t)), cy + r * math.sin(math.radians(t))) for t in hs]
+
+
+_LINE = re.compile(r'<line[^>]*x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"')
+
+
+def _partial_charges(parts, labels, atoms):
+    """Label every O with δ− and every H with δ+, in the most open direction around each atom
+    (away from its bonds and from the dotted attraction lines)."""
+    segs = [tuple(map(float, m.groups())) for m in map(_LINE.search, parts) if m]
+    for x, y, sym in atoms:
+        occupied = []
+        for x1, y1, x2, y2 in segs:
+            for (ex, ey), (fx, fy) in (((x1, y1), (x2, y2)), ((x2, y2), (x1, y1))):
+                if math.hypot(ex - x, ey - y) < 16:
+                    occupied.append(math.degrees(math.atan2(fy - y, fx - x)))
+        t = math.radians(lewis.spread(occupied, 1, prefer=-90)[0])
+        rr = 19 if sym == "O" else 17
+        tag, col = ("δ−", "--mol-o") if sym == "O" else ("δ+", "--mol-c")
+        labels.append(f'<text class="pc" x="{x + rr * math.cos(t):.1f}" y="{y + rr * math.sin(t):.1f}" dy="0.35em" '
+                      f'style="fill:var({col})">{tag}</text>')
 
 
 def _svg(uid, parts, labels, box, desc):
@@ -236,7 +253,7 @@ def _svg(uid, parts, labels, box, desc):
 
 def hydration_svg():
     """Na+ with water O atoms facing it; Cl− with water H atoms facing it."""
-    parts, labels = [], []
+    parts, labels, atoms = [], [], []
 
     def dotted(x0, y0, x1, y1):
         parts.append(f'<line class="imfline" x1="{x0:.1f}" y1="{y0:.1f}" x2="{x1:.1f}" y2="{y1:.1f}"/>')
@@ -245,42 +262,40 @@ def hydration_svg():
     for k, ang in enumerate([0, 90, 180, 270]):
         a = math.radians(ang)
         cx, cy = d * math.cos(a), d * math.sin(a)
-        _water(cx, cy, ang + 180, False, parts, labels)
+        _water(cx, cy, ang + 180, False, parts, labels, atoms)
         dotted(cx - 11 * math.cos(a), cy - 11 * math.sin(a), 20 * math.cos(a), 20 * math.sin(a))
-        if k == 0:
-            labels.append(f'<text class="pc" x="{cx - 14:.1f}" y="{cy - 18:.1f}" dy="0.35em" style="fill:var(--mol-o)">δ−</text>')
     labels.append('<text class="ionlabel" x="0" y="0" dy="0.35em" style="fill:var(--mol-c)">Na⁺</text>')
     ox = 280
     for k, ang in enumerate([45, 135, 225, 315]):
         a = math.radians(ang)
         cx, cy = ox + 80 * math.cos(a), 80 * math.sin(a)
-        _water(cx, cy, ang + 180, True, parts, labels)
+        _water(cx, cy, ang + 180, True, parts, labels, atoms)
         hx, hy = ox + 50 * math.cos(a), 50 * math.sin(a)
         dotted(hx - 9 * math.cos(a), hy - 9 * math.sin(a), ox + 19 * math.cos(a), 19 * math.sin(a))
-        if k == 0:
-            labels.append(f'<text class="pc" x="{hx + 14:.1f}" y="{hy - 4:.1f}" dy="0.35em" style="fill:var(--mol-c)">δ+</text>')
     labels.append(f'<text class="ionlabel" x="{ox}" y="0" dy="0.35em" style="fill:var(--mol-x)">Cl⁻</text>')
+    _partial_charges(parts, labels, atoms)
     desc = ("Ion–dipole attractions. Left: a sodium ion surrounded by four water molecules, each with its "
             "partly negative oxygen end facing the positive ion. Right: a chloride ion surrounded by four water "
             "molecules, each with one partly positive hydrogen pointing at the negative ion. Dotted lines show "
-            "the attractions.")
+            "the attractions. Every oxygen is labeled partial negative and every hydrogen partial positive.")
     return _svg("hydration", parts, labels, (-125, -125, 400, 125), desc)
 
 
 def hbond_svg():
     """Three water molecules joined by hydrogen bonds (dotted)."""
-    parts, labels = [], []
+    parts, labels, atoms = [], [], []
     centers = [(0, 0), (104, 0), (52, 92)]
     # molecule 0 donates an H to molecule 1; molecule 1 donates an H to molecule 2
-    hs0 = _water(*centers[0], 0, True, parts, labels)
-    hs1 = _water(*centers[1], math.degrees(math.atan2(92, 52 - 104)), True, parts, labels)
-    _water(*centers[2], -90, False, parts, labels)
+    hs0 = _water(*centers[0], 0, True, parts, labels, atoms)
+    hs1 = _water(*centers[1], math.degrees(math.atan2(92, 52 - 104)), True, parts, labels, atoms)
+    _water(*centers[2], -90, False, parts, labels, atoms)
     for (hx, hy), (ox, oy) in [(hs0[0], centers[1]), (hs1[0], centers[2])]:
         dx, dy = ox - hx, oy - hy
         dd = math.hypot(dx, dy)
         parts.append(f'<line class="imfline" x1="{hx + dx / dd * 9:.1f}" y1="{hy + dy / dd * 9:.1f}" '
                      f'x2="{ox - dx / dd * 11:.1f}" y2="{oy - dy / dd * 11:.1f}"/>')
+    _partial_charges(parts, labels, atoms)
     desc = ("Hydrogen bonds in water. Three water molecules: a hydrogen on one molecule points at the oxygen of the "
             "next, joined by a dotted line representing the hydrogen bond, which is an attraction between molecules, "
-            "not a covalent bond.")
+            "not a covalent bond. Every oxygen is labeled partial negative and every hydrogen partial positive.")
     return _svg("hbond", parts, labels, (-45, -45, 160, 140), desc)
