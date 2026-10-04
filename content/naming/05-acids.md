@@ -12,7 +12,7 @@ These rules are also in your Chemfolio; use whichever is handier while you pract
 | **-ate** | **-ic acid** | nitrate → nitric acid |
 | **-ite** | **-ous acid** | nitrite → nitrous acid |
 
-A memory aid: "I *ate* something *ic*-ky, and *it* was delici-*ous*" (-ate → -ic, -ite → -ous). **Add one H⁺ for each negative charge** on the anion.
+**Add one H⁺ for each negative charge** on the anion.
 
 [[acids cl br no3 no2 so4 so3 po4 co3 ac]]
 
