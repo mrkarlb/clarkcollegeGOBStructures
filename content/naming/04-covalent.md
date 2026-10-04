@@ -1,6 +1,6 @@
 # Naming Covalent Compounds {#covalent}
 
-When two nonmetals bond, they share electrons, and the same two elements can combine in several ratios: CO and CO₂, NO and NO₂. There are no charges to balance, so the name has to say **how many of each atom** there are. Covalent names use **prefixes**.
+When two nonmetals bond, they share electrons, and the same two elements can combine in several ratios: CO and CO₂, NO and NO₂. There are no charges to balance, so the name has to say **how many of each atom** there are. Covalent names use **prefixes**. You'll find them here and in your Chemfolio.
 
 [[prefixes]]
 

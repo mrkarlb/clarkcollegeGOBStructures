@@ -4,6 +4,8 @@ An **acid** releases H⁺ ions in water. The acids in this course are H⁺ combi
 
 ## The three rules
 
+These rules are also in your Chemfolio; use whichever is handier while you practice.
+
 | Anion ending | Acid name | Example |
 |---|---|---|
 | **-ide** | **hydro- … -ic acid** | chloride → hydrochloric acid |
