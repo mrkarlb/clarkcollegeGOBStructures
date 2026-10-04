@@ -420,7 +420,7 @@ def poly_chart():
             if i["kind"] == "poly" and i["family"] == fam:
                 rows.append(f'<tr><td>{_ion(i)}</td><th scope="row">{i["name"]}</th>'
                             f'<td>{html.escape(i["aka"])}</td><td>{html.escape(i["where"])}</td></tr>')
-    return _tbl("ions poly", "Common polyatomic ions. Use this chart; you don't need to memorize it.",
+    return _tbl("ions poly", "Common polyatomic ions. Use this chart and the one in your Chemfolio; you don't need to memorize them.",
                 ["Ion", "Name", "Also written or called", "Where you'll see it"], rows)
 
 

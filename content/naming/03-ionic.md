@@ -4,7 +4,7 @@ An ionic compound has **no overall charge**: the positive and negative charges c
 
 ## From name to formula
 
-1. **Write each ion with its charge.** Use the [charts](#ions) for monatomic and [polyatomic](#polyatomic) ions.
+1. **Write each ion with its charge.** Use the [charts](#ions) for monatomic and [polyatomic](#polyatomic) ions, or the ion charts in your Chemfolio.
 2. **Balance the charges.** Find the smallest number of each ion that makes the total zero.
 3. **Write the formula** with the cation first. The numbers of each ion become subscripts, and a subscript of 1 isn't written. **If you need more than one of a polyatomic ion, put it in parentheses** with the number outside.
 
