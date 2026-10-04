@@ -33,4 +33,4 @@ A few transition metals have **only one** common charge. They don't get a Roman 
 
 ## Diatomic elements
 
-Seven elements exist as **two-atom molecules** when they aren't in a compound: **H₂, N₂, O₂, F₂, Cl₂, Br₂, and I₂**. They're named just like the element: *oxygen*, *chlorine*. A trick for remembering them: start at element 7 (N), and the shape traced by N, O, F, Cl, Br, I makes a "7," plus H.
+Seven elements exist as **two-atom molecules** when they aren't in a compound: **H₂, N₂, O₂, F₂, Cl₂, Br₂, and I₂**. They're named just like the element: *oxygen*, *chlorine*.
