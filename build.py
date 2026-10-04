@@ -644,7 +644,7 @@ PAGES = [
          desc="Lewis structures, formal charge, and resonance for students preparing for health-profession careers. "
               "CHEM&amp;121, Clark College."),
     dict(file="shape.html", folder="shape", head="Shape, Polarity, and Intermolecular Forces — CHEM&amp;121 — Clark College",
-         title="Shape, Polarity, and Intermolecular Forces", nav="Shape, Polarity &amp; Forces",
+         title="Shape, Polarity, and Intermolecular Forces", nav="Shape, Polarity &amp; IMFs",
          sub="From a Lewis structure to a molecule's shape, its polarity, and the forces between molecules. "
              "Written for students preparing for health-profession careers.",
          desc="Molecular shape (VSEPR), bond and molecular polarity, and intermolecular forces for students preparing "
